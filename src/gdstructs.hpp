@@ -47,7 +47,7 @@ struct gdBlocksRise
     std::string middle = ",2,";
     std::string xpos = "15";
     std::string remainder = ",3,2940,155,1,36,1,217,1";
-}
+};
 
 struct gdBlocksFall
 {
@@ -55,7 +55,7 @@ struct gdBlocksFall
     std::string id = "23"; //set to 1915 for endBlocksFall
     std::string middle = ",2,";
     std::string xpos = "15";
-    std::string remainder = ",3,2940,155,1,36,1,217,2";
-}
+    std::string remainder = ",3,2910,155,1,36,1,217,2";
+};
 
 #endif

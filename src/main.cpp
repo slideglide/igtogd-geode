@@ -243,9 +243,9 @@ std::string buildObjectString(Level inLevel)
 
     for(int i = 0; i < inLevel.getRisingCount(); i++)
     {
-        tempGC = inLevel.getRisingAtIndex(i);
+        tempBR = inLevel.getRisingAtIndex(i);
 
-        tempGBR.xpos = std::to_string(tempBR->startX - 45);
+        tempGBR.xpos = std::to_string(tempBR->startX - 135);
         tempGBR.id = "23";
 
         result += tempGBR.base;
@@ -255,7 +255,15 @@ std::string buildObjectString(Level inLevel)
         result += tempGBR.remainder;
         result += ";";
 
-        tempGBR.xpos = std::to_string(tempBR->endX - 45);
+        if(tempBR->startX == tempBR->endX)
+        {
+            tempGBR.xpos = std::to_string(inLevel.getEndPos() - 315);
+        }
+        else
+        {
+            tempGBR.xpos = std::to_string(tempBR->endX - 135);
+        }
+        
         tempGBR.id = "1915";
 
         result += tempGBR.base;
@@ -273,7 +281,7 @@ std::string buildObjectString(Level inLevel)
     {
         tempBF = inLevel.getFallingAtIndex(i);
 
-        tempGBF.xpos = std::to_string(tempBF->startX - 45);
+        tempGBF.xpos = std::to_string(tempBF->startX - 135);
         tempGBF.id = "23";
 
         result += tempGBF.base;
@@ -283,7 +291,15 @@ std::string buildObjectString(Level inLevel)
         result += tempGBF.remainder;
         result += ";";
 
-        tempGBF.xpos = std::to_string(tempBF->endX - 45);
+        if(tempBF->startX == tempBF->endX)
+        {
+            tempGBF.xpos = std::to_string(inLevel.getEndPos() - 315);
+        }
+        else
+        {
+            tempGBF.xpos = std::to_string(tempBF->endX - 135);
+        }
+
         tempGBF.id = "1915";
 
         result += tempGBF.base;
