@@ -1,189 +1,253 @@
 #include <Geode/Loader.hpp>
 #include <Geode/utils/cocos.hpp>
+#include <Geode/utils/file.hpp>
 #include <Geode/modify/LevelBrowserLayer.hpp>
 #include <Geode/modify/LevelInfoLayer.hpp>
 #include <Geode/modify/EditLevelLayer.hpp>
 #include <Geode/modify/IDManager.hpp>
 #include <Geode/modify/LevelListLayer.hpp>
 #include <Geode/ui/Popup.hpp>
-#include <hjfod.gmd-api/include/GMD.hpp>
+#include <Geode/cocos/support/zip_support/ZipUtils.h>
+#include <Geode/utils/base64.hpp>
+//#include <hjfod.gmd-api/include/GMD.hpp>
+#include <cmath>
+#include "gdstructs.hpp"
+#include "compat_defs.hpp"
+#include "libImpossibleLevel.hpp"
 
 using namespace geode::prelude;
-using namespace gmd;
+//using namespace gmd;
+
+
+std::string buildObjectString(Level inLevel)
+{
+    gdObj tempGD;
+    BlockObject* tempIG = new BlockObject;
+    bool isPit = false;
+    std::string result = level_string_base;
+
+    for(int i = 0; i < inLevel.getBlockCount(); i++)
+    {
+        tempIG = inLevel.getBlockAtIndex(i);
+        
+        switch(tempIG->objType)
+        {
+            case 0:
+                tempGD.p1_id = "1";
+                break;
+            case 1:
+                tempGD.p1_id = "8";
+                break;
+            case 2:
+                tempGD.p1_id = "9";
+                isPit = true;
+                break;
+        }
+
+        if(!isPit)
+        {
+            tempGD.p2_x = std::to_string(tempIG->xPos - 135);
+            tempGD.p3_y = std::to_string(tempIG->yPos + 15);
+            tempGD.p21_colorID = "0";
+            tempGD.p24_zLayer = "0";
+            result += "1,";
+            result += tempGD.p1_id;
+            result += ",2,";
+            result += tempGD.p2_x;
+            result += ",3,";https://github.com/HJfod/GDShare 
+            result += tempGD.p3_y;
+            result += ",21,";
+            result += tempGD.p21_colorID;
+            result += ",24,";
+            result += tempGD.p24_zLayer;
+            result += ";";
+        }
+        else
+        {
+            int iterations = round((tempIG->yPos - tempIG->xPos)/30) + 1;
+            int currentX = (tempIG->xPos - 135);
+            for(int j = 0; j < iterations; j++)
+            {
+                result += "1,";
+                result += "9";
+                result += ",2,";
+                result += std::to_string(currentX);
+                result += ",3,";
+                result += "0";
+                result += ",21,";
+                result += tempGD.p21_colorID;
+                result += ",24,";
+                result += tempGD.p24_zLayer;
+                result += ";";
+
+                currentX += 30;
+            }
+        }
+        isPit = false;
+    }
+
+    //delete tempIG;
+
+    BackgroundChange* tempBC = new BackgroundChange;
+    gdColorTrigger tempCT;
+
+    for(int i = 0; i < inLevel.getBackgroundCount(); i++)
+    {
+        tempBC = inLevel.getBackgroundAtIndex(i);
+
+        switch(tempBC->colorID)
+        {
+            case 0:
+                //blue
+                tempCT.p7_red = "63";
+                tempCT.p8_green = "184";
+                tempCT.p9_blue = "199";
+                break;
+            case 1:
+                //yellow
+                tempCT.p7_red = "236";
+                tempCT.p8_green = "216";
+                tempCT.p9_blue = "50";
+                break;
+            case 3:
+                //violet
+                tempCT.p7_red = "178";
+                tempCT.p8_green = "38";
+                tempCT.p9_blue = "227";
+                break;
+            case 4:
+                //pink
+                tempCT.p7_red = "241";
+                tempCT.p8_green = "19";
+                tempCT.p9_blue = "242";
+                break;
+            case 2:
+                //green
+                tempCT.p7_red = "83";
+                tempCT.p8_green = "255";
+                tempCT.p9_blue = "83";
+                break;
+            case 5:
+                //black
+                tempCT.p7_red = "0";
+                tempCT.p8_green = "0";
+                tempCT.p9_blue = "0";
+                break;
+        }
+        //this is a fucking awful way to do it but the weirdness of GD has forced my hand
+        tempCT.p2_x = std::to_string(tempBC->xPos - 135);
+        tempCT.p3_y = std::to_string(3000);
+        tempCT.p23_channel = std::to_string(1000);
+        result += "1,";
+        result += tempCT.p1_id;
+        result += ",2,";
+        result += tempCT.p2_x;
+        result += ",3,";
+        result += tempCT.p3_y;
+        result += ",7,";
+        result += tempCT.p7_red;
+        result += ",8,";
+        result += tempCT.p8_green;
+        result += ",9,";
+        result += tempCT.p9_blue;
+        result += ",10,";
+        result += tempCT.p10_duration;  
+        result += ",23,";
+        result += tempCT.p23_channel;
+        result += tempCT.remainder;
+        result += ";";
+
+        tempCT.p2_x = std::to_string(tempBC->xPos - 135);
+        tempCT.p3_y = std::to_string(3030);
+        tempCT.p23_channel = std::to_string(1001);
+        result += "1,";
+        result += tempCT.p1_id;
+        result += ",2,";
+        result += tempCT.p2_x;
+        result += ",3,";
+        result += tempCT.p3_y;
+        result += ",7,";
+        result += tempCT.p7_red;
+        result += ",8,";
+        result += tempCT.p8_green;
+        result += ",9,";
+        result += tempCT.p9_blue;
+        result += ",10,";
+        result += tempCT.p10_duration;  
+        result += ",23,";
+        result += tempCT.p23_channel;
+        result += tempCT.remainder;
+        result += ";";
+
+        tempCT.p2_x = std::to_string(tempBC->xPos - 135);
+        tempCT.p3_y = std::to_string(3060);
+        tempCT.p23_channel = std::to_string(1009); //wtf
+        result += "1,";
+        result += tempCT.p1_id;
+        result += ",2,";
+        result += tempCT.p2_x;
+        result += ",3,";
+        result += tempCT.p3_y;
+        result += ",7,";
+        result += tempCT.p7_red;
+        result += ",8,";
+        result += tempCT.p8_green;
+        result += ",9,";
+        result += tempCT.p9_blue;
+        result += ",10,";
+        result += tempCT.p10_duration;  
+        result += ",23,";
+        result += tempCT.p23_channel;
+        result += tempCT.remainder;
+        result += ";";
+    }
+
+    return result;
+}
+
 
 static auto IMPORT_PICK_OPTIONS = file::FilePickOptions {
     std::nullopt,
     {
         {
             "Impossible Game Level Files",
-            { "*.lvl", "*.dat" }
+            { "*.lvl" }
         }
     }
 };
 
-template <class L>
-static Task<Result<std::filesystem::path>> promptExportLevel(L* level) {
-    auto opts = IMPORT_PICK_OPTIONS;
-    if constexpr (std::is_same_v<L, GJLevelList>) {
-        opts.defaultPath = std::string(level->m_listName) + ".gmdl";
-    }
-    else {
-        opts.defaultPath = std::string(level->m_levelName) + ".gmd";
-    }
-    return file::pick(file::PickMode::SaveFile, opts);
-}
-template <class L>
-static void onExportFilePick(L* level, typename Task<Result<std::filesystem::path>>::Event* event) {
-    if (auto result = event->getValue()) {
-        if (result->isOk()) {
-            auto path = result->unwrap();
-            std::optional<std::string> err;
-            if constexpr (std::is_same_v<L, GJLevelList>) {
-                err = exportListAsGmd(level, path).err();
-            }
-            else {
-                err = exportLevelAsGmd(level, path).err();
-            }
-            if (!err) {
-                createQuickPopup(
-                    "Exported",
-                    (std::is_same_v<L, GJLevelList> ?
-                        "Succesfully exported list" :
-                        "Succesfully exported level"
-                    ),
-                    "OK", "Open File",
-                    [path](auto, bool btn2) {
-                        if (btn2) file::openFolder(path);
-                    }
-                );
-            }
-            else {
-                FLAlertLayer::create(
-                    "Error",
-                    "Unable to export: " + err.value(),
-                    "OK"
-                )->show();
-            }
-        }
-        else {
-            FLAlertLayer::create("Error Exporting", result->unwrapErr(), "OK")->show();
-        }
-    }
-}
-
-struct $modify(ExportMyLevelLayer, EditLevelLayer) {
-    struct Fields {
-        EventListener<Task<Result<std::filesystem::path>>> pickListener;
-    };
-
-    $override
-    bool init(GJGameLevel* level) {
-        if (!EditLevelLayer::init(level))
-            return false;
-        
-        auto menu = this->getChildByID("level-actions-menu");
-        if (menu) {
-            auto btn = CCMenuItemSpriteExtra::create(
-                CircleButtonSprite::createWithSpriteFrameName(
-                    "file.png"_spr, .8f,
-                    CircleBaseColor::Green,
-                    CircleBaseSize::MediumAlt
-                ),
-                this, menu_selector(ExportMyLevelLayer::onExport)
-            );
-            btn->setID("export-button"_spr);
-            menu->addChild(btn);
-            menu->updateLayout();
-        }
-
-        return true;
-    }
-
-    void onExport(CCObject*) {
-        m_fields->pickListener.bind([level = m_level](auto* ev) { onExportFilePick(level, ev); });
-        m_fields->pickListener.setFilter(promptExportLevel(m_level));
-    }
-};
-
-struct $modify(ExportOnlineLevelLayer, LevelInfoLayer) {
-    struct Fields {
-        EventListener<Task<Result<std::filesystem::path>>> pickListener;
-    };
-
-    $override
-    bool init(GJGameLevel* level, bool challenge) {
-        if (!LevelInfoLayer::init(level, challenge))
-            return false;
-        
-        auto menu = this->getChildByID("left-side-menu");
-        if (menu) {
-            auto btn = CCMenuItemSpriteExtra::create(
-                CircleButtonSprite::createWithSpriteFrameName(
-                    "file.png"_spr, .8f,
-                    CircleBaseColor::Green,
-                    CircleBaseSize::Medium
-                ),
-                this, menu_selector(ExportOnlineLevelLayer::onExport)
-            );
-            btn->setID("export-button"_spr);
-            menu->addChild(btn);
-            menu->updateLayout();
-        }
-
-        return true;
-    }
-
-    void onExport(CCObject*) {
-        m_fields->pickListener.bind([level = m_level](auto* ev) { onExportFilePick(level, ev); });
-        m_fields->pickListener.setFilter(promptExportLevel(m_level));
-    }
-};
 
 struct $modify(ImportLayer, LevelBrowserLayer) {
     struct Fields {
-        EventListener<Task<Result<std::vector<std::filesystem::path>>>> pickListener;
+        EventListener<Task<Result<std::filesystem::path>>> pickListener;
     };
 
-    static void importFiles(std::vector<std::filesystem::path> const& paths) {
-        for (auto const& path : paths) {
-            switch (getGmdFileKind(path)) {
-                case GmdFileKind::List: {
-                    auto res = gmd::importGmdAsList(path);
-                    if (res) {
-                        LocalLevelManager::get()->m_localLists->insertObject(*res, 0);
-                    }
-                    else {
-                        return FLAlertLayer::create("Error Importing", res.unwrapErr(), "OK")->show();
-                    }
-                } break;
+    static void importFiles(std::filesystem::path const& path) {
+        Level igLevel(path.generic_string(), false);
 
-                case GmdFileKind::Level: {
-                    auto res = gmd::importGmdAsLevel(path);
-                    if (res) {
-                        LocalLevelManager::get()->m_localLevels->insertObject(*res, 0);
-                    }
-                    else {
-                        return FLAlertLayer::create("Error Importing", res.unwrapErr(), "OK")->show();
-                    }
-                } break;
-
-                case GmdFileKind::None: {
-                    // todo: show popup to pick type
-                    return FLAlertLayer::create(
-                        "Error Importing",
-                        fmt::format("Selected file '<cp>{}</c>' is not a GMD file!", path),
-                        "OK"
-                    )->show();
-                } break;
-            }
+        if(igLevel.getBlockCount() == 0 && igLevel.getBackgroundCount() == 0 && igLevel.getEndPos() == 3015)
+        {
+            FLAlertLayer::create("Parse Error", "This is most likely not a valid Impossible Game level folder", "OK")->show();
+        }
+        else
+        {
+            std::string innerLevelString = buildObjectString(igLevel);
+            std::string encodedString = ZipUtils::compressString(innerLevelString, false, 0);
+            FLAlertLayer::create("string", encodedString, "OK")->show();
+            std::ofstream out(path.generic_string() + "/output.txt");
+            out << encodedString;
+            out.close();
         }
 
+
+        /*
         auto scene = CCScene::create();
         auto layer = LevelBrowserLayer::create(
             GJSearchObject::create(SearchType::MyLevels)
         );
         scene->addChild(layer);
         CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(.5f, scene));
+        */
     }
 
     void onImport(CCObject*) {
@@ -197,7 +261,7 @@ struct $modify(ImportLayer, LevelBrowserLayer) {
                 }
             }
         });
-        m_fields->pickListener.setFilter(file::pickMany(IMPORT_PICK_OPTIONS));
+        m_fields->pickListener.setFilter(file::pick(file::PickMode::OpenFolder, IMPORT_PICK_OPTIONS));
     }
 
     $override
@@ -230,38 +294,5 @@ struct $modify(ImportLayer, LevelBrowserLayer) {
         }
 
         return true;
-    }
-};
-
-struct $modify(ExportListLayer, LevelListLayer) {
-    struct Fields {
-        EventListener<Task<Result<std::filesystem::path>>> pickListener;
-    };
-
-    $override
-    bool init(GJLevelList* level) {
-        if (!LevelListLayer::init(level))
-            return false;
-        
-        if (auto menu = this->getChildByID("left-side-menu")) {
-            auto btn = CCMenuItemSpriteExtra::create(
-                CircleButtonSprite::createWithSpriteFrameName(
-                    "file.png"_spr, .8f,
-                    CircleBaseColor::Green,
-                    CircleBaseSize::Medium
-                ),
-                this, menu_selector(ExportListLayer::onExport)
-            );
-            btn->setID("export-button"_spr);
-            menu->addChild(btn);
-            menu->updateLayout();
-        }
-
-        return true;
-    }
-
-    void onExport(CCObject*) {
-        m_fields->pickListener.bind([list = m_levelList](auto* ev) { onExportFilePick(list, ev); });
-        m_fields->pickListener.setFilter(promptExportLevel(m_levelList));
     }
 };

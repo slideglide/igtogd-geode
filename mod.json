@@ -11,7 +11,7 @@
     "resources": {
         "spritesheets": {
             "ig2gd": [
-                "resources/*.png"
+                "resources/file.png"
             ]
         }
     },
