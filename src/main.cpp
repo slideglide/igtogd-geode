@@ -221,8 +221,8 @@ std::string buildObjectString(Level inLevel)
 
         currentlyInverted = !currentlyInverted;
 
-        tempMP.xpos = std::to_string(tempGC->xPos - 45);
-        tempCO.xpos = std::to_string(tempGC->xPos - 45);
+        tempMP.xpos = std::to_string(tempGC->xPos + 15);
+        tempCO.xpos = std::to_string(tempGC->xPos + 15);
 
         result += tempMP.base;
         result += tempMP.objID;
