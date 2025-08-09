@@ -25,5 +25,8 @@
             "importance": "required"
         }
     ],
+    "links": {
+        "source": "https://github.com/MysticAx0lotl/igtogd-geode"
+    },
     "tags": ["utility", "universal"]
 }
