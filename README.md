@@ -4,4 +4,5 @@ This is a Geode mod for importing levels from *The Impossible Game* into *Geomet
 ### Credits
 - @HJFod - Some level importing logic (adapted from [GDShare](https://github.com/HJfod/GDShare)), also helped me figure out what I was doing in general :P
 - @TechStudent10 - helped me figure out how GJGameLevel works
-- @iAndyHD3 - also me figure out how GJGameLevel works
+- @iAndyHD3 - also helped me figure out how GJGameLevel works
+- @slideglide - cross-platform support!
