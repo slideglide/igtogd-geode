@@ -9,7 +9,7 @@
 #include <Geode/ui/Popup.hpp>
 #include <Geode/cocos/support/zip_support/ZipUtils.h>
 #include <Geode/utils/base64.hpp>
-//#include <hjfod.gmd-api/include/GMD.hpp>
+#include <Geode/binding/GJGameLevel.hpp>
 #include <cmath>
 #include "gdstructs.hpp"
 #include "compat_defs.hpp"
@@ -233,21 +233,24 @@ struct $modify(ImportLayer, LevelBrowserLayer) {
         {
             std::string innerLevelString = buildObjectString(igLevel);
             std::string encodedString = ZipUtils::compressString(innerLevelString, false, 0);
-            FLAlertLayer::create("string", encodedString, "OK")->show();
-            std::ofstream out(path.generic_string() + "/output.txt");
-            out << encodedString;
-            out.close();
+            
+            auto gdLevel = GJGameLevel::create();
+
+            auto gdDict = new DS_Dictionary();
+            gdDict->loadRootSubDictFromString(encodedString);
+            gdLevel->dataLoaded(gdDict);
+            
+            gdLevel->m_levelType = GJLevelType::Editor;
+
+            LocalLevelManager::get()->m_localLevels->insertObject(gdLevel, 0);
+
+            auto scene = CCScene::create();
+            auto layer = LevelBrowserLayer::create(
+                GJSearchObject::create(SearchType::MyLevels)
+            );
+            scene->addChild(layer);
+            CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(.5f, scene));
         }
-
-
-        /*
-        auto scene = CCScene::create();
-        auto layer = LevelBrowserLayer::create(
-            GJSearchObject::create(SearchType::MyLevels)
-        );
-        scene->addChild(layer);
-        CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(.5f, scene));
-        */
     }
 
     void onImport(CCObject*) {
