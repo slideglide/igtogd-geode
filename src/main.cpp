@@ -202,6 +202,18 @@ std::string buildObjectString(Level inLevel)
         result += ";";
     }
 
+    /*
+    GravityChange* tempGC = new GravityChange;
+    gdMirrorPortal tempMP;
+    gdCameraObj tempCO;
+    bool currentlyInverted = false;
+
+    for(int i = 0; i < inLevel.getGravityCount(); i++)
+    {
+
+    }
+    */
+
     return result;
 }
 
@@ -236,11 +248,13 @@ struct $modify(ImportLayer, LevelBrowserLayer) {
             
             auto gdLevel = GJGameLevel::create();
 
-            auto gdDict = new DS_Dictionary();
-            gdDict->loadRootSubDictFromString(encodedString);
-            gdLevel->dataLoaded(gdDict);
+            //auto gdDict = new DS_Dictionary();
+            //gdDict->loadRootSubDictFromString(encodedString);
+            //gdLevel->dataLoaded(gdDict);
             
             gdLevel->m_levelType = GJLevelType::Editor;
+            gdLevel->m_levelString = encodedString;
+            gdLevel->m_levelName = "Impossible Game Import";
 
             LocalLevelManager::get()->m_localLevels->insertObject(gdLevel, 0);
 
