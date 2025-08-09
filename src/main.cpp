@@ -54,7 +54,7 @@ std::string buildObjectString(Level inLevel)
             result += tempGD.p1_id;
             result += ",2,";
             result += tempGD.p2_x;
-            result += ",3,";https://github.com/HJfod/GDShare 
+            result += ",3,";
             result += tempGD.p3_y;
             result += ",21,";
             result += tempGD.p21_colorID;
@@ -275,7 +275,7 @@ struct $modify(ImportLayer, LevelBrowserLayer) {
         if (search->m_searchType == SearchType::MyLevels || search->m_searchType == SearchType::MyLists) {
             auto btnMenu = this->getChildByID("new-level-menu");
 
-            auto importBtn = CCMenuItemSpriteExtra::create(
+            auto igImportBtn = CCMenuItemSpriteExtra::create(
                 CircleButtonSprite::createWithSpriteFrameName(
                     "file.png"_spr, .85f,
                     CircleBaseColor::Pink,
@@ -284,14 +284,14 @@ struct $modify(ImportLayer, LevelBrowserLayer) {
                 this,
                 menu_selector(ImportLayer::onImport)
             );
-            importBtn->setID("import-level-button"_spr);
+            igImportBtn->setID("import-ig-level-button"_spr);
 
             // This one has an ID but no layout which is CRINGE
             if (search->m_searchType == SearchType::MyLists && search->m_searchIsOverlay) {
-                btnMenu->addChildAtPosition(importBtn, Anchor::BottomLeft, ccp(0, 60), false);
+                btnMenu->addChildAtPosition(igImportBtn, Anchor::BottomLeft, ccp(0, 60), false);
             }
             else {
-                btnMenu->addChild(importBtn);
+                btnMenu->addChild(igImportBtn);
                 btnMenu->updateLayout();
             }
         }
