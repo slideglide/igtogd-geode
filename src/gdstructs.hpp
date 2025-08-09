@@ -27,7 +27,7 @@ struct gdCameraObj
 {
     std::string base = "1,2015,2,";
     std::string xpos = "0";
-    std::string middle = ",3,105,155,2,36,1,85,2,68,";
+    std::string middle = ",3,2970,155,2,36,1,85,2,68,";
     std::string rotation = "180";
 };
 
@@ -35,7 +35,27 @@ struct gdMirrorPortal
 {
     std::string base = "1,";
     std::string objID = "45"; //45 = mirror start, 46 = mirror end
-    std::string remainder = ",2,15,3,45,135,1,155,2,36,1";
+    std::string middle = ",2,";
+    std::string xpos = "15";
+    std::string remainder = ",3,45,135,1,155,2,36,1";
 };
+
+struct gdBlocksRise
+{
+    std::string base = "1,";
+    std::string id = "23"; //set to 1915 for endBlocksRise
+    std::string middle = ",2,";
+    std::string xpos = "15";
+    std::string remainder = ",3,15,155,1,36,1,217,1";
+}
+
+struct gdBlocksFall
+{
+    std::string base = "1,";
+    std::string id = "23"; //set to 1915 for endBlocksFall
+    std::string middle = ",2,";
+    std::string xpos = "15";
+    std::string remainder = ",3,15,155,1,36,1,217,2";
+}
 
 #endif

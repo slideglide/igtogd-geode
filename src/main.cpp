@@ -16,8 +16,6 @@
 #include "libImpossibleLevel.hpp"
 
 using namespace geode::prelude;
-//using namespace gmd;
-
 
 std::string buildObjectString(Level inLevel)
 {
@@ -85,8 +83,6 @@ std::string buildObjectString(Level inLevel)
         }
         isPit = false;
     }
-
-    //delete tempIG;
 
     BackgroundChange* tempBC = new BackgroundChange;
     gdColorTrigger tempCT;
@@ -202,7 +198,7 @@ std::string buildObjectString(Level inLevel)
         result += ";";
     }
 
-    /*
+
     GravityChange* tempGC = new GravityChange;
     gdMirrorPortal tempMP;
     gdCameraObj tempCO;
@@ -210,9 +206,99 @@ std::string buildObjectString(Level inLevel)
 
     for(int i = 0; i < inLevel.getGravityCount(); i++)
     {
+        tempGC = inLevel.getGravAtIndex(i);
 
+        if(currentlyInverted)
+        {
+            tempMP.objID = "46";
+            tempCO.rotation = "0";
+        }
+        else
+        {
+            tempMP.objID = "45";
+            tempCO.rotation = "180";
+        }
+
+        currentlyInverted = !currentlyInverted;
+
+        tempMP.xpos = std::to_string(tempGC->xPos - 45);
+        tempCO.xpos = std::to_string(tempGC->xPos - 45);
+
+        result += tempMP.base;
+        result += tempMP.objID;
+        result += tempMP.middle;
+        result += tempMP.xpos;
+        result += tempMP.remainder;
+        result += ";";
+
+        result += tempCO.base;
+        result += tempCO.xpos;
+        result += tempCO.middle;
+        result += tempCO.rotation;
+        result += ";";
     }
-    */
+
+    BlocksRise* tempBR = new BlocksRise;
+    gdBlocksRise tempGBR;
+
+    for(int i = 0; i < inLevel.getRisingCount(); i++)
+    {
+        tempGC = inLevel.getRisingAtIndex(i);
+
+        tempGBR.xpos = std::to_string(tempBR->startX - 45);
+        tempGBR.id = "23";
+
+        result += tempGBR.base;
+        result += tempGBR.id;
+        result += tempGBR.middle;
+        result += tempGBR.xpos;
+        result += tempGBR.remainder;
+        result += ";";
+
+        tempGBR.xpos = std::to_string(tempBR->endX - 45);
+        tempGBR.id = "1915";
+
+        result += tempGBR.base;
+        result += tempGBR.id;
+        result += tempGBR.middle;
+        result += tempGBR.xpos;
+        result += tempGBR.remainder;
+        result += ";";
+    }
+
+    BlocksFall* tempBF = new BlocksFall;
+    gdBlocksFall tempGBF;
+
+    for(int i = 0; i < inLevel.getFallingCount(); i++)
+    {
+        tempBF = inLevel.getFallingAtIndex(i);
+
+        tempGBF.xpos = std::to_string(tempBF->startX - 45);
+        tempGBF.id = "23";
+
+        result += tempGBF.base;
+        result += tempGBF.id;
+        result += tempGBF.middle;
+        result += tempGBF.xpos;
+        result += tempGBF.remainder;
+        result += ";";
+
+        tempGBF.xpos = std::to_string(tempBF->endX - 45);
+        tempGBF.id = "1915";
+
+        result += tempGBF.base;
+        result += tempGBF.id;
+        result += tempGBF.middle;
+        result += tempGBF.xpos;
+        result += tempGBF.remainder;
+        result += ";";
+    }
+
+    delete tempIG;
+    delete tempBC;
+    delete tempGC;
+    delete tempBR;
+    delete tempBF;
 
     return result;
 }
@@ -247,10 +333,6 @@ struct $modify(ImportLayer, LevelBrowserLayer) {
             std::string encodedString = ZipUtils::compressString(innerLevelString, false, 0);
             
             auto gdLevel = GJGameLevel::create();
-
-            //auto gdDict = new DS_Dictionary();
-            //gdDict->loadRootSubDictFromString(encodedString);
-            //gdLevel->dataLoaded(gdDict);
             
             gdLevel->m_levelType = GJLevelType::Editor;
             gdLevel->m_levelString = encodedString;
