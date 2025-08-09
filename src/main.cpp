@@ -341,7 +341,11 @@ struct $modify(ImportLayer, LevelBrowserLayer) {
 
         if(igLevel.getBlockCount() == 0 && igLevel.getBackgroundCount() == 0 && igLevel.getEndPos() == 3015)
         {
-            FLAlertLayer::create("Parse Error", "This is most likely not a valid Impossible Game level folder", "OK")->show();
+            FLAlertLayer::create("Load Error", "This is most likely not a valid Impossible Game level folder", "OK")->show();
+        }
+        else if (igLevel.getLoadedSuccessfully() == false)
+        {
+            FLAlertLayer::create("Parse Error", "This is not a valid Impossible Game level!", "OK")->show();
         }
         else
         {

@@ -26,7 +26,7 @@ struct BlockObject
 /*
 BackgroundChange: the invisible objects that change the color or texture of the background
 xPos = the object's x position in raw coordinates (divide by 30 to get its grid space)
-colorId = the ID of the background color that will be used when this object is passed
+colorId = the ID of the background color that will be used when this object is passed ()
 customGraphics = the editor's seemingly-unused ability to load an actual texture image instead of using a color
 customFile = the also unused UTF-8 string pointing to a texture
 indexInVec = the object's index in the vector it's part of. Only used by this library, does not get read from or written to the level file
@@ -139,6 +139,7 @@ class Level
         int getGravityCount();
         int getRisingCount();
         int getFallingCount();
+        bool getLoadedSuccessfully();
 
         //set methods
         void addBlock(BlockObject*);
@@ -181,6 +182,7 @@ class Level
         int endPos;
         bool customGraphicsEnabled;
         int formatVer;
+        bool loadedSuccessfully;
         static inline const char* blockNames[3] = {"Platform", "Spike", "Pit"}; 
         static inline const char* colorNames[6] = {"blue", "yellow", "green", "violet", "pink", "black"};
         static inline const std::string tig_filepath = "/level.dat";
