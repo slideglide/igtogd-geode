@@ -1,0 +1,31 @@
+{
+    "geode": "4.7.0",
+	"gd": {
+		"win": "2.2074"
+	},
+	"version": "0.0.1",
+	"id": "mysticaxolotl.ig2gd",
+    "name": "Impossible Game 2 GD",
+    "developer": "MysticAxolotl",
+    "description": "Import levels from The Impossible Game into Geometry Dash",
+    "resources": {
+        "spritesheets": {
+            "ig2gd": [
+                "resources/*.png"
+            ]
+        }
+    },
+    "dependencies": [
+        {
+            "id": "hjfod.gmd-api",
+            "version": "1.4.0",
+            "importance": "required"
+        },
+        {
+            "id": "geode.node-ids",
+            "version": "1.12.0",
+            "importance": "required"
+        }
+    ],
+    "tags": ["utility", "universal"]
+}
