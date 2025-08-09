@@ -1,3 +1,3 @@
-Adds buttons to import / export levels as [.GMD files](https://fileinfo.com/extension/gmd).
+Adds a button to import levels from the 2014 PC release of _The Impossible Game_.
 
-The GD community's #1 tool for leaking levels!
+Some levels **WILL** need tweaking, GD's physics are *not* one-to-one with TIG.
