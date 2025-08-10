@@ -1,3 +1,6 @@
+# v1.0.3
+ * Fix _massive_ oversights with the positioning of certain triggers
+
 # v1.0.2
  * Add input validation
  

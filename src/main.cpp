@@ -131,7 +131,7 @@ std::string buildObjectString(Level inLevel)
                 break;
         }
         //this is a fucking awful way to do it but the weirdness of GD has forced my hand
-        tempCT.p2_x = std::to_string(tempBC->xPos - 135);
+        tempCT.p2_x = std::to_string(tempBC->xPos + 165);
         tempCT.p3_y = std::to_string(3000);
         tempCT.p23_channel = std::to_string(1000);
         result += "1,";
@@ -153,7 +153,7 @@ std::string buildObjectString(Level inLevel)
         result += tempCT.remainder;
         result += ";";
 
-        tempCT.p2_x = std::to_string(tempBC->xPos - 135);
+        tempCT.p2_x = std::to_string(tempBC->xPos + 165);
         tempCT.p3_y = std::to_string(3030);
         tempCT.p23_channel = std::to_string(1001);
         result += "1,";
@@ -175,7 +175,7 @@ std::string buildObjectString(Level inLevel)
         result += tempCT.remainder;
         result += ";";
 
-        tempCT.p2_x = std::to_string(tempBC->xPos - 135);
+        tempCT.p2_x = std::to_string(tempBC->xPos + 165);
         tempCT.p3_y = std::to_string(3060);
         tempCT.p23_channel = std::to_string(1009); //wtf
         result += "1,";
@@ -221,8 +221,8 @@ std::string buildObjectString(Level inLevel)
 
         currentlyInverted = !currentlyInverted;
 
-        tempMP.xpos = std::to_string(tempGC->xPos + 15);
-        tempCO.xpos = std::to_string(tempGC->xPos + 15);
+        tempMP.xpos = std::to_string(tempGC->xPos + 165);
+        tempCO.xpos = std::to_string(tempGC->xPos + 165);
 
         result += tempMP.base;
         result += tempMP.objID;
@@ -245,7 +245,9 @@ std::string buildObjectString(Level inLevel)
     {
         tempBR = inLevel.getRisingAtIndex(i);
 
-        tempGBR.xpos = std::to_string(tempBR->startX - 135);
+        //tempGBR.xpos = std::to_string(tempBR->startX - 135);
+        tempGBR.xpos = std::to_string(tempBR->startX - 465);
+
         tempGBR.id = "23";
 
         result += tempGBR.base;
@@ -257,11 +259,12 @@ std::string buildObjectString(Level inLevel)
 
         if(tempBR->startX == tempBR->endX)
         {
-            tempGBR.xpos = std::to_string(inLevel.getEndPos() - 315);
+            tempGBR.xpos = std::to_string(inLevel.getEndPos() - 495);
         }
         else
         {
-            tempGBR.xpos = std::to_string(tempBR->endX - 135);
+            //tempGBR.xpos = std::to_string(tempBR->endX - 135);
+            tempGBR.xpos = std::to_string(tempBR->endX - 495);
         }
         
         tempGBR.id = "1915";
@@ -293,11 +296,11 @@ std::string buildObjectString(Level inLevel)
 
         if(tempBF->startX == tempBF->endX)
         {
-            tempGBF.xpos = std::to_string(inLevel.getEndPos() - 315);
+            tempGBF.xpos = std::to_string(inLevel.getEndPos() - 15);
         }
         else
         {
-            tempGBF.xpos = std::to_string(tempBF->endX - 135);
+            tempGBF.xpos = std::to_string(tempBF->endX - 15);
         }
 
         tempGBF.id = "1915";
