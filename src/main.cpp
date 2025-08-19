@@ -383,7 +383,7 @@ struct $modify(ImportLayer, LevelBrowserLayer) {
                 }
             }
         });
-        m_fields->pickListener.setFilter(file::pick(file::PickMode::OpenFolder, IMPORT_PICK_OPTIONS));
+        m_fields->pickListener.setFilter(file::pick(file::PickMode::OpenFile, IMPORT_PICK_OPTIONS));
     }
 
     $override
