@@ -1,319 +1,210 @@
-#include <Geode/Loader.hpp>
-#include <Geode/utils/cocos.hpp>
-#include <Geode/utils/file.hpp>
+#include <Geode/Geode.hpp>
+#include <Geode/ui/Button.hpp>
 #include <Geode/modify/LevelBrowserLayer.hpp>
-#include <Geode/modify/LevelInfoLayer.hpp>
-#include <Geode/modify/EditLevelLayer.hpp>
-#include <Geode/modify/IDManager.hpp>
-#include <Geode/modify/LevelListLayer.hpp>
-#include <Geode/ui/Popup.hpp>
-#include <Geode/cocos/support/zip_support/ZipUtils.h>
-#include <Geode/utils/base64.hpp>
-#include <Geode/binding/GJGameLevel.hpp>
-#include <cmath>
 #include "gdstructs.hpp"
 #include "compat_defs.hpp"
-#include "libImpossibleLevel.hpp"
 
 using namespace geode::prelude;
+class Level {
+    private:
+    std::vector<BlockObject> m_blocks;
+    std::vector<BackgroundChange> m_backgrounds;
+    std::vector<GravityChange> m_gravity;
+    std::vector<BlocksRise> m_rising;
+    std::vector<BlocksFall> m_falling;
+    int m_endPos = 3015;
+    bool m_loaded = false;
+    
+    int readInt(ByteVector const& data, size_t& offset) {
+        if (offset + 4 > data.size()) return -1;
+        
+        uint32_t b1 = static_cast<uint32_t>(data[offset]);
+        uint32_t b2 = static_cast<uint32_t>(data[offset + 1]);
+        uint32_t b3 = static_cast<uint32_t>(data[offset + 2]);
+        uint32_t b4 = static_cast<uint32_t>(data[offset + 3]);
+        
+        offset += 4;
+        return static_cast<int>((b1 << 24) | (b2 << 16) | (b3 << 8) | b4);
+    }
+    
+    public:
+    Level(std::filesystem::path path, bool debug) {
+        auto result = file::readBinary(path);
+        if (!result) return;
+        
+        auto data = result.unwrap();
+        if (data.size() < 10) return;
+        
+        size_t offset = 0;
+        
+        int formatVer = readInt(data, offset);
+        
+        uint8_t customGraphicsUnused = data[offset++];
+        
+        int numBlocks = (static_cast<int>(data[offset]) << 8) | static_cast<int>(data[offset + 1]);
+        offset += 2;
+        
+        for (int i = 0; i < numBlocks; i++) {
+            BlockObject obj;
+            uint8_t type = data[offset++]; 
+            obj.objType = static_cast<int>(type);
+            obj.indexInVec = i;
+            
 
-std::string buildObjectString(Level inLevel)
-{
+            obj.xPos = readInt(data, offset);
+            obj.yPos = readInt(data, offset); 
+            
+            m_blocks.push_back(obj);
+        }
+        
+        m_endPos = readInt(data, offset);
+        
+        int numBG = readInt(data, offset);
+        for (int i = 0; i < numBG; i++) {
+            int x = readInt(data, offset);
+            uint8_t isCustom = data[offset++];
+            
+            if (isCustom == 0) {
+                int colorID = readInt(data, offset);
+                m_backgrounds.push_back({x, colorID, nullptr, false, ""});
+            } else {
+                int strLen = (static_cast<int>(data[offset]) << 8) | static_cast<int>(data[offset + 1]);
+                offset += 2;
+                std::string texturePath;
+                if (offset + strLen <= data.size()) {
+                    texturePath = std::string(reinterpret_cast<const char*>(data.data() + offset), strLen);
+                }
+                offset += strLen;
+                m_backgrounds.push_back({x, 0, nullptr, true, texturePath});
+            }
+        }
+        
+        int numGrav = readInt(data, offset);
+        for (int i = 0; i < numGrav; i++) {
+            m_gravity.push_back({readInt(data, offset)});
+        }
+        
+        int numRise = readInt(data, offset);
+        for (int i = 0; i < numRise; i++) {
+            int start = readInt(data, offset);
+            int end = readInt(data, offset);
+            m_rising.push_back({start, end});
+        }
+        
+        int numFall = readInt(data, offset);
+        for (int i = 0; i < numFall; i++) {
+            int start = readInt(data, offset);
+            int end = readInt(data, offset);
+            m_falling.push_back({start, end});
+        }
+        
+        m_loaded = true;
+    }
+    
+    int getBlockCount() { return m_blocks.size(); }
+    BlockObject* getBlockAtIndex(int i) { return &m_blocks[i]; }
+    int getBackgroundCount() { return m_backgrounds.size(); }
+    BackgroundChange* getBackgroundAtIndex(int i) { return &m_backgrounds[i]; }
+    int getGravityCount() { return m_gravity.size(); }
+    GravityChange* getGravAtIndex(int i) { return &m_gravity[i]; }
+    int getRisingCount() { return m_rising.size(); }
+    BlocksRise* getRisingAtIndex(int i) { return &m_rising[i]; }
+    int getFallingCount() { return m_falling.size(); }
+    BlocksFall* getFallingAtIndex(int i) { return &m_falling[i]; }
+    int getEndPos() { return m_endPos; }
+    bool getLoadedSuccessfully() { return m_loaded; }
+};
+
+std::string buildObjectString(Level inLevel) {
     gdObj tempGD;
     BlockObject* tempIG;
     bool isPit = false;
     std::string result = level_string_base;
-
-    for(int i = 0; i < inLevel.getBlockCount(); i++)
-    {
+    
+    for(int i = 0; i < inLevel.getBlockCount(); i++) {
         tempIG = inLevel.getBlockAtIndex(i);
         
-        switch(tempIG->objType)
-        {
-            case 0:
-                tempGD.p1_id = "1";
-                break;
-            case 1:
-                tempGD.p1_id = "8";
-                break;
-            case 2:
-                tempGD.p1_id = "9";
-                isPit = true;
-                break;
+        switch(tempIG->objType) {
+            case 0: tempGD.p1_id = "1"; break;
+            case 1: tempGD.p1_id = "8"; break;
+            case 2: tempGD.p1_id = "9"; isPit = true; break;
         }
-
-        if(!isPit)
-        {
-            tempGD.p2_x = std::to_string(tempIG->xPos - 135);
-            tempGD.p3_y = std::to_string(tempIG->yPos + 15);
+        
+        if(!isPit) {
+            tempGD.p2_x = utils::numToString(tempIG->xPos - 135);
+            tempGD.p3_y = utils::numToString(tempIG->yPos + 15);
             tempGD.p21_colorID = "0";
             tempGD.p24_zLayer = "0";
-            result += "1,";
-            result += tempGD.p1_id;
-            result += ",2,";
-            result += tempGD.p2_x;
-            result += ",3,";
-            result += tempGD.p3_y;
-            result += ",21,";
-            result += tempGD.p21_colorID;
-            result += ",24,";
-            result += tempGD.p24_zLayer;
-            result += ";";
+            result += "1," + tempGD.p1_id + ",2," + tempGD.p2_x + ",3," + tempGD.p3_y + ",21,0,24,0;";
         }
-        else
-        {
+        else {
             int iterations = round((tempIG->yPos - tempIG->xPos)/30) + 1;
             int currentX = (tempIG->xPos - 135);
             for(int j = 0; j < iterations; j++)
             {
-                result += "1,";
-                result += "9";
-                result += ",2,";
-                result += std::to_string(currentX);
-                result += ",3,";
-                result += "0";
-                result += ",21,";
-                result += tempGD.p21_colorID;
-                result += ",24,";
-                result += tempGD.p24_zLayer;
-                result += ";";
-
+                result += "1,9,2," + utils::numToString(currentX) + ",3,0,21,0,24,0;";
                 currentX += 30;
             }
         }
         isPit = false;
     }
-
+    
     BackgroundChange* tempBC;
     gdColorTrigger tempCT;
-
-    for(int i = 0; i < inLevel.getBackgroundCount(); i++)
-    {
+    
+    for(int i = 0; i < inLevel.getBackgroundCount(); i++) {
         tempBC = inLevel.getBackgroundAtIndex(i);
-
-        switch(tempBC->colorID)
-        {
-            case 0:
-                //blue
-                tempCT.p7_red = "63";
-                tempCT.p8_green = "184";
-                tempCT.p9_blue = "199";
-                break;
-            case 1:
-                //yellow
-                tempCT.p7_red = "236";
-                tempCT.p8_green = "216";
-                tempCT.p9_blue = "50";
-                break;
-            case 3:
-                //violet
-                tempCT.p7_red = "178";
-                tempCT.p8_green = "38";
-                tempCT.p9_blue = "227";
-                break;
-            case 4:
-                //pink
-                tempCT.p7_red = "241";
-                tempCT.p8_green = "19";
-                tempCT.p9_blue = "242";
-                break;
-            case 2:
-                //green
-                tempCT.p7_red = "83";
-                tempCT.p8_green = "255";
-                tempCT.p9_blue = "83";
-                break;
-            case 5:
-                //black
-                tempCT.p7_red = "0";
-                tempCT.p8_green = "0";
-                tempCT.p9_blue = "0";
-                break;
+        switch(tempBC->colorID) {
+            case 0: tempCT.p7_red = "63"; tempCT.p8_green = "184"; tempCT.p9_blue = "199"; break;
+            case 1: tempCT.p7_red = "236"; tempCT.p8_green = "216"; tempCT.p9_blue = "50"; break;
+            case 3: tempCT.p7_red = "178"; tempCT.p8_green = "38"; tempCT.p9_blue = "227"; break;
+            case 4: tempCT.p7_red = "241"; tempCT.p8_green = "19"; tempCT.p9_blue = "242"; break;
+            case 2: tempCT.p7_red = "83"; tempCT.p8_green = "255"; tempCT.p9_blue = "83"; break;
+            case 5: tempCT.p7_red = "0"; tempCT.p8_green = "0"; tempCT.p9_blue = "0"; break;
         }
-        //this is a fucking awful way to do it but the weirdness of GD has forced my hand
-        tempCT.p2_x = std::to_string(tempBC->xPos + 165);
-        tempCT.p3_y = std::to_string(3000);
-        tempCT.p23_channel = std::to_string(1000);
-        result += "1,";
-        result += tempCT.p1_id;
-        result += ",2,";
-        result += tempCT.p2_x;
-        result += ",3,";
-        result += tempCT.p3_y;
-        result += ",7,";
-        result += tempCT.p7_red;
-        result += ",8,";
-        result += tempCT.p8_green;
-        result += ",9,";
-        result += tempCT.p9_blue;
-        result += ",10,";
-        result += tempCT.p10_duration;  
-        result += ",23,";
-        result += tempCT.p23_channel;
-        result += tempCT.remainder;
-        result += ";";
-
-        tempCT.p2_x = std::to_string(tempBC->xPos + 165);
-        tempCT.p3_y = std::to_string(3030);
-        tempCT.p23_channel = std::to_string(1001);
-        result += "1,";
-        result += tempCT.p1_id;
-        result += ",2,";
-        result += tempCT.p2_x;
-        result += ",3,";
-        result += tempCT.p3_y;
-        result += ",7,";
-        result += tempCT.p7_red;
-        result += ",8,";
-        result += tempCT.p8_green;
-        result += ",9,";
-        result += tempCT.p9_blue;
-        result += ",10,";
-        result += tempCT.p10_duration;  
-        result += ",23,";
-        result += tempCT.p23_channel;
-        result += tempCT.remainder;
-        result += ";";
-
-        tempCT.p2_x = std::to_string(tempBC->xPos + 165);
-        tempCT.p3_y = std::to_string(3060);
-        tempCT.p23_channel = std::to_string(1009); //wtf
-        result += "1,";
-        result += tempCT.p1_id;
-        result += ",2,";
-        result += tempCT.p2_x;
-        result += ",3,";
-        result += tempCT.p3_y;
-        result += ",7,";
-        result += tempCT.p7_red;
-        result += ",8,";
-        result += tempCT.p8_green;
-        result += ",9,";
-        result += tempCT.p9_blue;
-        result += ",10,";
-        result += tempCT.p10_duration;  
-        result += ",23,";
-        result += tempCT.p23_channel;
-        result += tempCT.remainder;
-        result += ";";
+        std::string xPosStr = utils::numToString(tempBC->xPos + 165);
+        result += "1,899,2," + xPosStr + ",3,3000,7," + tempCT.p7_red + ",8," + tempCT.p8_green + ",9," + tempCT.p9_blue + ",10,0.25,23,1000,155,1,35,1;";
+        result += "1,899,2," + xPosStr + ",3,3030,7," + tempCT.p7_red + ",8," + tempCT.p8_green + ",9," + tempCT.p9_blue + ",10,0.25,23,1001,155,1,35,1;";
+        result += "1,899,2," + xPosStr + ",3,3060,7," + tempCT.p7_red + ",8," + tempCT.p8_green + ",9," + tempCT.p9_blue + ",10,0.25,23,1009,155,1,35,1;";
     }
-
-
+    
     GravityChange* tempGC;
     gdMirrorPortal tempMP;
     gdCameraObj tempCO;
     bool currentlyInverted = false;
-
-    for(int i = 0; i < inLevel.getGravityCount(); i++)
-    {
+    
+    for(int i = 0; i < inLevel.getGravityCount(); i++) {
         tempGC = inLevel.getGravAtIndex(i);
-
-        if(currentlyInverted)
-        {
-            tempMP.objID = "46";
-            tempCO.rotation = "0";
-        }
-        else
-        {
-            tempMP.objID = "45";
-            tempCO.rotation = "180";
-        }
-
+        tempMP.objID = currentlyInverted ? "46" : "45";
+        tempCO.rotation = currentlyInverted ? "0" : "180";
         currentlyInverted = !currentlyInverted;
-
-        tempMP.xpos = std::to_string(tempGC->xPos + 165);
-        tempCO.xpos = std::to_string(tempGC->xPos + 165);
-
-        result += tempMP.base;
-        result += tempMP.objID;
-        result += tempMP.middle;
-        result += tempMP.xpos;
-        result += tempMP.remainder;
-        result += ";";
-
-        result += tempCO.base;
-        result += tempCO.xpos;
-        result += tempCO.middle;
-        result += tempCO.rotation;
-        result += ";";
+        std::string xPosStr = utils::numToString(tempGC->xPos + 165);
+        result += tempMP.base + tempMP.objID + tempMP.middle + xPosStr + tempMP.remainder + ";";
+        result += tempCO.base + xPosStr + tempCO.middle + tempCO.rotation + ";";
     }
-
+    
     BlocksRise* tempBR;
     gdBlocksRise tempGBR;
-
-    for(int i = 0; i < inLevel.getRisingCount(); i++)
-    {
+    for(int i = 0; i < inLevel.getRisingCount(); i++) {
         tempBR = inLevel.getRisingAtIndex(i);
-
-        tempGBR.xpos = std::to_string(tempBR->startX - 465);
-
-        tempGBR.id = "23";
-
-        result += tempGBR.base;
-        result += tempGBR.id;
-        result += tempGBR.middle;
-        result += tempGBR.xpos;
-        result += tempGBR.remainder;
-        result += ";";
-
-        if(tempBR->startX == tempBR->endX)
-        {
-            tempGBR.xpos = std::to_string(inLevel.getEndPos() - 495);
-        }
-        else
-        {
-            tempGBR.xpos = std::to_string(tempBR->endX - 495);
-        }
-        
-        tempGBR.id = "1915";
-
-        result += tempGBR.base;
-        result += tempGBR.id;
-        result += tempGBR.middle;
-        result += tempGBR.xpos;
-        result += tempGBR.remainder;
-        result += ";";
+        tempGBR.xpos = utils::numToString(tempBR->startX - 465);
+        result += tempGBR.base + "23" + tempGBR.middle + tempGBR.xpos + tempGBR.remainder + ";";
+        tempGBR.xpos = (tempBR->startX == tempBR->endX) ? utils::numToString(inLevel.getEndPos() - 495) : utils::numToString(tempBR->endX - 495);
+        result += tempGBR.base + "1915" + tempGBR.middle + tempGBR.xpos + tempGBR.remainder + ";";
     }
-
+    
     BlocksFall* tempBF;
     gdBlocksFall tempGBF;
-
-    for(int i = 0; i < inLevel.getFallingCount(); i++)
-    {
+    for(int i = 0; i < inLevel.getFallingCount(); i++) {
         tempBF = inLevel.getFallingAtIndex(i);
-
-        tempGBF.xpos = std::to_string(tempBF->startX - 135);
-        tempGBF.id = "23";
-
-        result += tempGBF.base;
-        result += tempGBF.id;
-        result += tempGBF.middle;
-        result += tempGBF.xpos;
-        result += tempGBF.remainder;
-        result += ";";
-
-        if(tempBF->startX == tempBF->endX)
-        {
-            tempGBF.xpos = std::to_string(inLevel.getEndPos() - 15);
-        }
-        else
-        {
-            tempGBF.xpos = std::to_string(tempBF->endX - 15);
-        }
-
-        tempGBF.id = "1915";
-
-        result += tempGBF.base;
-        result += tempGBF.id;
-        result += tempGBF.middle;
-        result += tempGBF.xpos;
-        result += tempGBF.remainder;
-        result += ";";
+        tempGBF.xpos = utils::numToString(tempBF->startX - 135);
+        result += tempGBF.base + "23" + tempGBF.middle + tempGBF.xpos + tempGBF.remainder + ";";
+        tempGBF.xpos = (tempBF->startX == tempBF->endX) ? utils::numToString(inLevel.getEndPos() - 15) : utils::numToString(tempBF->endX - 15);
+        result += tempGBF.base + "1915" + tempGBF.middle + tempGBF.xpos + tempGBF.remainder + ";";
     }
-
+    
     return result;
 }
-
 
 static auto IMPORT_PICK_OPTIONS = file::FilePickOptions {
     std::nullopt,
@@ -325,15 +216,14 @@ static auto IMPORT_PICK_OPTIONS = file::FilePickOptions {
     }
 };
 
-
-struct $modify(ImportLayer, LevelBrowserLayer) {
+class $modify(ImportLayer, LevelBrowserLayer) {
     struct Fields {
-        EventListener<Task<Result<std::filesystem::path>>> pickListener;
+        TaskHolder<Result<std::optional<std::filesystem::path>>> pickListener;    
     };
-
+    
     static void importFiles(std::filesystem::path const& path) {
-        Level igLevel(path.generic_string(), false);
-
+        Level igLevel(path, false);
+        
         if(igLevel.getBlockCount() == 0 && igLevel.getBackgroundCount() == 0 && igLevel.getEndPos() == 3015)
         {
             FLAlertLayer::create("Load Error", "This is most likely not a valid Impossible Game level file", "OK")->show();
@@ -348,55 +238,49 @@ struct $modify(ImportLayer, LevelBrowserLayer) {
             std::string encodedString = ZipUtils::compressString(innerLevelString, false, 0);
             
             auto gdLevel = GJGameLevel::create();
-            
             gdLevel->m_levelType = GJLevelType::Editor;
             gdLevel->m_levelString = encodedString;
             gdLevel->m_levelName = "Impossible Game Import";
-
+            
             LocalLevelManager::get()->m_localLevels->insertObject(gdLevel, 0);
-
+            
             auto scene = CCScene::create();
-            auto layer = LevelBrowserLayer::create(
-                GJSearchObject::create(SearchType::MyLevels)
-            );
+            auto layer = LevelBrowserLayer::create(GJSearchObject::create(SearchType::MyLevels));
             scene->addChild(layer);
             CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(.5f, scene));
         }
     }
-
-    void onImport(CCObject*) {
-        m_fields->pickListener.bind([](auto* event) {
-            if (auto result = event->getValue()) {
-                if (result->isOk()) {
-                    importFiles(**result);
+    
+    void onImport() {
+        m_fields->pickListener.spawn(
+            file::pick(file::PickMode::OpenFile, IMPORT_PICK_OPTIONS),
+            [this](Result<std::optional<std::filesystem::path>> result) {
+                if (result.isOk()) {
+                    if (auto path = result.unwrap()) {
+                        this->importFiles(path.value());
+                    }
                 }
-                else {
-                    FLAlertLayer::create("Error Importing", result->unwrapErr(), "OK")->show();
+                else if (result.isErr()) {
+                    FLAlertLayer::create("Error Importing", result.unwrapErr(), "OK")->show();
                 }
             }
-        });
-        m_fields->pickListener.setFilter(file::pick(file::PickMode::OpenFile, IMPORT_PICK_OPTIONS));
+        );
     }
-
-    $override
+    
     bool init(GJSearchObject* search) {
-        if (!LevelBrowserLayer::init(search))
-            return false;
-
+        if (!LevelBrowserLayer::init(search)) return false;
+        
         if (search->m_searchType == SearchType::MyLevels || search->m_searchType == SearchType::MyLists) {
             auto btnMenu = this->getChildByID("new-level-menu");
-
-            auto igImportBtn = CCMenuItemSpriteExtra::create(
-                CircleButtonSprite::createWithSpriteFrameName(
-                    "file.png"_spr, .85f,
-                    CircleBaseColor::Pink,
-                    CircleBaseSize::Big
-                ),
-                this,
-                menu_selector(ImportLayer::onImport)
+            auto igImportBtn = Button::createWithNode(
+                CircleButtonSprite::createWithSpriteFrameName("file.png"_spr, .85f, CircleBaseColor::Pink, CircleBaseSize::Big),
+                [this](auto sender) {
+                    onImport();
+                }
             );
+            
             igImportBtn->setID("import-ig-level-button"_spr);
-
+            
             // This one has an ID but no layout which is CRINGE
             if (search->m_searchType == SearchType::MyLists && search->m_searchIsOverlay) {
                 btnMenu->addChildAtPosition(igImportBtn, Anchor::BottomLeft, ccp(0, 60), false);
@@ -406,7 +290,6 @@ struct $modify(ImportLayer, LevelBrowserLayer) {
                 btnMenu->updateLayout();
             }
         }
-
         return true;
     }
 };

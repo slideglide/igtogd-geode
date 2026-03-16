@@ -1,6 +1,35 @@
 #ifndef GD_STRUCTS
 #define GD_STRUCTS
 
+struct BlockObject {
+    int xPos;
+    int yPos; // Acts as endX for pits
+    int objType;
+    int indexInVec;
+};
+
+struct BackgroundChange {
+    int xPos;
+    int colorID;
+    const char* colorName;
+    bool customTexture;
+    std::string filePath;
+};
+
+struct GravityChange {
+    int xPos;
+};
+
+struct BlocksRise {
+    int startX;
+    int endX;
+};
+
+struct BlocksFall {
+    int startX;
+    int endX;
+};
+
 struct gdObj
 {
     std::string p1_id = "1"; //block is default, can be changed to spike or pit
@@ -9,6 +38,8 @@ struct gdObj
     std::string p21_colorID = "0";
     std::string p24_zLayer = "0";
 };
+
+
 
 struct gdColorTrigger
 {
