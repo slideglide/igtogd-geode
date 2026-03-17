@@ -1,5 +1,4 @@
 #include <Geode/Geode.hpp>
-#include <Geode/ui/Button.hpp>
 #include <Geode/modify/LevelBrowserLayer.hpp>
 #include "gdstructs.hpp"
 #include "compat_defs.hpp"
