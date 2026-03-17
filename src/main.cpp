@@ -50,7 +50,7 @@ class Level {
             obj.objType = static_cast<int>(type);
             obj.indexInVec = i;
             
-
+            
             obj.xPos = readInt(data, offset);
             obj.yPos = readInt(data, offset); 
             
@@ -121,7 +121,7 @@ std::string buildObjectString(Level inLevel) {
     bool isPit = false;
     std::string result = level_string_base;
     
-    for(int i = 0; i < inLevel.getBlockCount(); i++) {
+    for (int i = 0; i < inLevel.getBlockCount(); i++) {
         tempIG = inLevel.getBlockAtIndex(i);
         
         switch(tempIG->objType) {
@@ -152,7 +152,7 @@ std::string buildObjectString(Level inLevel) {
     BackgroundChange* tempBC;
     gdColorTrigger tempCT;
     
-    for(int i = 0; i < inLevel.getBackgroundCount(); i++) {
+    for (int i = 0; i < inLevel.getBackgroundCount(); i++) {
         tempBC = inLevel.getBackgroundAtIndex(i);
         switch(tempBC->colorID) {
             case 0: tempCT.p7_red = "63"; tempCT.p8_green = "184"; tempCT.p9_blue = "199"; break;
@@ -173,7 +173,7 @@ std::string buildObjectString(Level inLevel) {
     gdCameraObj tempCO;
     bool currentlyInverted = false;
     
-    for(int i = 0; i < inLevel.getGravityCount(); i++) {
+    for (int i = 0; i < inLevel.getGravityCount(); i++) {
         tempGC = inLevel.getGravAtIndex(i);
         tempMP.objID = currentlyInverted ? "46" : "45";
         tempCO.rotation = currentlyInverted ? "0" : "180";
@@ -185,7 +185,7 @@ std::string buildObjectString(Level inLevel) {
     
     BlocksRise* tempBR;
     gdBlocksRise tempGBR;
-    for(int i = 0; i < inLevel.getRisingCount(); i++) {
+    for (int i = 0; i < inLevel.getRisingCount(); i++) {
         tempBR = inLevel.getRisingAtIndex(i);
         tempGBR.xpos = utils::numToString(tempBR->startX - 465);
         result += tempGBR.base + "23" + tempGBR.middle + tempGBR.xpos + tempGBR.remainder + ";";
@@ -195,7 +195,7 @@ std::string buildObjectString(Level inLevel) {
     
     BlocksFall* tempBF;
     gdBlocksFall tempGBF;
-    for(int i = 0; i < inLevel.getFallingCount(); i++) {
+    for (int i = 0; i < inLevel.getFallingCount(); i++) {
         tempBF = inLevel.getFallingAtIndex(i);
         tempGBF.xpos = utils::numToString(tempBF->startX - 135);
         result += tempGBF.base + "23" + tempGBF.middle + tempGBF.xpos + tempGBF.remainder + ";";
@@ -208,61 +208,139 @@ std::string buildObjectString(Level inLevel) {
 
 static auto IMPORT_PICK_OPTIONS = file::FilePickOptions {
     std::nullopt,
+    #ifndef GEODE_IS_IOS
     {
         {
-            "Impossible Game Level Files",
+            "Impossible Game Levels (.lvl)",
+            { "*.lvl" }
+        }
+    }
+    #else
+    {
+        
+        {
+            "Impossible Game Levels (.dat)",
             { "*.dat" }
         }
     }
+    #endif
 };
 
 class $modify(ImportLayer, LevelBrowserLayer) {
     struct Fields {
-        TaskHolder<Result<std::optional<std::filesystem::path>>> pickListener;    
+        async::TaskHolder<Result<std::string>> m_importTask;
     };
     
-    static void importFiles(std::filesystem::path const& path) {
+    static Result<std::string> processLevelFile(std::filesystem::path const& path) {
         Level igLevel(path, false);
         
-        if(igLevel.getBlockCount() == 0 && igLevel.getBackgroundCount() == 0 && igLevel.getEndPos() == 3015)
-        {
-            FLAlertLayer::create("Load Error", "This is most likely not a valid Impossible Game level file", "OK")->show();
+        if (igLevel.getBlockCount() == 0 && igLevel.getBackgroundCount() == 0 && igLevel.getEndPos() == 3015) {
+            return Err("This is most likely not a valid Impossible Game level file");
         }
-        else if (igLevel.getLoadedSuccessfully() == false)
-        {
-            FLAlertLayer::create("Parse Error", "This is not a valid Impossible Game level!", "OK")->show();
+        if (!igLevel.getLoadedSuccessfully()) {
+            return Err("This is not a valid Impossible Game level!");
         }
-        else
-        {
-            std::string innerLevelString = buildObjectString(igLevel);
-            std::string encodedString = ZipUtils::compressString(innerLevelString, false, 0);
-            
-            auto gdLevel = GJGameLevel::create();
-            gdLevel->m_levelType = GJLevelType::Editor;
-            gdLevel->m_levelString = encodedString;
-            gdLevel->m_levelName = "Impossible Game Import";
-            
-            LocalLevelManager::get()->m_localLevels->insertObject(gdLevel, 0);
-            
-            auto scene = CCScene::create();
-            auto layer = LevelBrowserLayer::create(GJSearchObject::create(SearchType::MyLevels));
-            scene->addChild(layer);
-            CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(.5f, scene));
-        }
+        
+        std::string innerLevelString = buildObjectString(igLevel);
+        return Ok(ZipUtils::compressString(innerLevelString, false, 0));
     }
     
     void onImport() {
-        m_fields->pickListener.spawn(
-            file::pick(file::PickMode::OpenFile, IMPORT_PICK_OPTIONS),
-            [this](Result<std::optional<std::filesystem::path>> result) {
-                if (result.isOk()) {
-                    if (auto path = result.unwrap()) {
-                        this->importFiles(path.value());
+        m_fields->m_importTask.spawn(
+            "Importing Impossible Game Level",
+            [this]() -> arc::Future<Result<std::string>> {
+                #ifdef GEODE_IS_IOS
+                auto mode = file::PickMode::OpenFile;
+                #else
+                auto mode = file::PickMode::OpenFolder;
+                #endif
+                
+                auto pickResult = co_await file::pick(mode, IMPORT_PICK_OPTIONS);
+                if (pickResult.isErr()) co_return Err(pickResult.unwrapErr());
+                
+                auto pathOpt = pickResult.unwrap();
+                if (!pathOpt.has_value()) co_return Err("No selection was made");
+                
+                std::filesystem::path finalPath = pathOpt.value();
+                
+                #ifndef GEODE_IS_IOS
+                if (std::filesystem::is_directory(finalPath)) {
+                    auto dirName = utils::string::toLower(utils::string::pathToString(finalPath.filename()));
+                    
+                    if (dirName.size() >= 4 && dirName.substr(dirName.size() - 4) == ".lvl") {
+                        
+                        auto filesResult = file::readDirectory(finalPath);
+                        if (filesResult.isErr()) {
+                            co_return Err("Failed to read directory: " + filesResult.unwrapErr());
+                        }
+                        
+                        auto files = filesResult.unwrap();
+                        bool found = false;
+                        
+                        for (auto const& filePath : files) {
+                            if (!std::filesystem::is_regular_file(filePath)) continue;
+                            
+                            auto ext = utils::string::toLower(utils::string::pathToString(filePath.extension()));
+                            
+                            if (ext == ".lvl" || ext == ".dat" || ext.empty()) {
+                                finalPath = filePath;
+                                found = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!found) co_return Err("No level files found in selected .lvl folder");
+                    } else {
+                        auto filesResult = file::readDirectory(finalPath);
+                        
+                        if (filesResult.isErr()) {
+                            co_return Err("Failed to read directory: " + filesResult.unwrapErr());
+                        }
+                        
+                        auto files = filesResult.unwrap();
+                        bool found = false;
+                        
+                        for (auto const& filePath : files) {
+                            if (!std::filesystem::is_regular_file(filePath)) continue;
+                            
+                            auto ext = utils::string::toLower(utils::string::pathToString(filePath.extension()));
+                            
+                            if (ext == ".lvl") {
+                                finalPath = filePath;
+                                found = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!found) co_return Err("The chosen file was not a .lvl");
                     }
                 }
-                else if (result.isErr()) {
-                    FLAlertLayer::create("Error Importing", result.unwrapErr(), "OK")->show();
+                #endif
+                
+                co_return co_await async::runtime().spawnBlocking<Result<std::string>>([path = finalPath]() {
+                    return processLevelFile(path);
+                });
+            }(),
+            
+            [this](Result<std::string> result) {
+                if (result.isErr()) {
+                    if (result.unwrapErr() != "No selection was made") {
+                        FLAlertLayer::create("Import Error", result.unwrapErr(), "OK")->show();
+                    }
+                    return;
                 }
+                
+                auto gdLevel = GJGameLevel::create();
+                gdLevel->m_levelType = GJLevelType::Editor;
+                gdLevel->m_levelString = result.unwrap();
+                gdLevel->m_levelName = "Impossible Game Import";
+                
+                LocalLevelManager::get()->m_localLevels->insertObject(gdLevel, 0);
+                
+                auto scene = CCScene::create();
+                auto layer = LevelBrowserLayer::create(GJSearchObject::create(SearchType::MyLevels));
+                scene->addChild(layer);
+                CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(.5f, scene));                
             }
         );
     }
