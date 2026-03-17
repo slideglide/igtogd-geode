@@ -30,7 +30,7 @@ class Level {
     public:
     Level(std::filesystem::path path, bool debug) {
         auto result = file::readBinary(path);
-        if (!result) return;
+        if (result.isErr()) return;
         
         auto data = result.unwrap();
         if (data.size() < 10) return;
