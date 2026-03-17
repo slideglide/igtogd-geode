@@ -1,6 +1,7 @@
 # v1.0.5
 - 2.2081 support (Geode v5)
 - Change file picker to only allow .lvl files (except on iOS, where it's .dat due to Geode specific issues)
+- Name imported levels after the .lvl file (falls back to "Impossible Game Import" if file name is empty or if it's a .dat file).
 
 # v1.0.4
  * Fix memory management issues preventing the mod from working on Windows
