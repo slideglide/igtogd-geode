@@ -350,9 +350,9 @@ class $modify(ImportLayer, LevelBrowserLayer) {
         
         if (search->m_searchType == SearchType::MyLevels || search->m_searchType == SearchType::MyLists) {
             auto btnMenu = this->getChildByID("new-level-menu");
-            auto igImportBtn = Button::createWithNode(
+            auto igImportBtn = CCMenuItemExt::createSpriteExtra(
                 CircleButtonSprite::createWithSpriteFrameName("file.png"_spr, .85f, CircleBaseColor::Pink, CircleBaseSize::Big),
-                [this](auto sender) { onImport(); }
+                [this](CCMenuItemSpriteExtra* btn) { onImport(); }
             );
             
             igImportBtn->setID("import-ig-level-button"_spr);
