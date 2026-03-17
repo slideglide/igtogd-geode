@@ -228,7 +228,7 @@ static auto IMPORT_PICK_OPTIONS = file::FilePickOptions {
 
 class $modify(ImportLayer, LevelBrowserLayer) {
     struct Fields {
-        async::TaskHolder<Result<std::string>> m_importTask;
+        async::TaskHolder<Result<std::pair<std::filesystem::path, std::string>>> m_importTask;
     };
     
     static Result<std::string> processLevelFile(std::filesystem::path const& path) {
@@ -248,7 +248,7 @@ class $modify(ImportLayer, LevelBrowserLayer) {
     void onImport() {
         m_fields->m_importTask.spawn(
             "Importing Impossible Game Level",
-            [this]() -> arc::Future<Result<std::string>> {
+            [this]() -> arc::Future<Result<std::pair<std::filesystem::path, std::string>>> {
                 #ifdef GEODE_IS_IOS
                 auto mode = file::PickMode::OpenFile;
                 #else
@@ -317,12 +317,14 @@ class $modify(ImportLayer, LevelBrowserLayer) {
                 }
                 #endif
                 
-                co_return co_await async::runtime().spawnBlocking<Result<std::string>>([path = finalPath]() {
-                    return processLevelFile(path);
+                co_return co_await async::runtime().spawnBlocking<Result<std::pair<std::filesystem::path, std::string>>>([path = finalPath]() -> Result<std::pair<std::filesystem::path, std::string>> {
+                    auto result = processLevelFile(path);
+                    if (result.isErr()) return Err(result.unwrapErr());
+                    return Ok(std::make_pair(path, result.unwrap()));
                 });
             }(),
             
-            [this](Result<std::string> result) {
+            [this](Result<std::pair<std::filesystem::path, std::string>> result) {
                 if (result.isErr()) {
                     if (result.unwrapErr() != "No selection was made") {
                         FLAlertLayer::create("Import Error", result.unwrapErr(), "OK")->show();
@@ -330,17 +332,44 @@ class $modify(ImportLayer, LevelBrowserLayer) {
                     return;
                 }
                 
+                auto [path, levelString] = result.unwrap();
+                
+                std::string name;
+                
+                for (auto it = path.begin(); it != path.end(); ++it) {
+                    auto part = utils::string::pathToString(*it);
+                    if (part.size() >= 4 && utils::string::toLower(part).substr(part.size() - 4) == ".lvl") {
+                        name = utils::string::pathToString(std::filesystem::path(part).stem());
+                        break;
+                    }
+                }
+                
+                if (name.empty()) {
+                    auto ext = utils::string::toLower(utils::string::pathToString(path.extension()));
+                    if (ext == ".lvl") {
+                        name = utils::string::pathToString(path.stem());
+                    }
+                }
+                
+                if (!name.empty()) {
+                    std::string first = name.substr(0, 1);
+                    utils::string::toUpperIP(first);
+                    name = first + name.substr(1);
+                } else {
+                    name = "Impossible Game Import";
+                }
+                
                 auto gdLevel = GJGameLevel::create();
                 gdLevel->m_levelType = GJLevelType::Editor;
-                gdLevel->m_levelString = result.unwrap();
-                gdLevel->m_levelName = "Impossible Game Import";
+                gdLevel->m_levelString = levelString;
+                gdLevel->m_levelName = name;
                 
                 LocalLevelManager::get()->m_localLevels->insertObject(gdLevel, 0);
                 
                 auto scene = CCScene::create();
                 auto layer = LevelBrowserLayer::create(GJSearchObject::create(SearchType::MyLevels));
                 scene->addChild(layer);
-                CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(.5f, scene));                
+                CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(.5f, scene));
             }
         );
     }
