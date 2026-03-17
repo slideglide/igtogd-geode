@@ -324,7 +324,7 @@ class $modify(ImportLayer, LevelBrowserLayer) {
                 });
             }(),
             
-            [this](Result<std::pair<std::filesystem::path, std::string>> result) {
+            [](Result<std::pair<std::filesystem::path, std::string>> result) {
                 if (result.isErr()) {
                     if (result.unwrapErr() != "No selection was made") {
                         FLAlertLayer::create("Import Error", result.unwrapErr(), "OK")->show();
