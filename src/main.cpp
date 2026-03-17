@@ -5,6 +5,7 @@
 #include "compat_defs.hpp"
 
 using namespace geode::prelude;
+
 class Level {
     private:
     std::vector<BlockObject> m_blocks;
@@ -312,7 +313,7 @@ class $modify(ImportLayer, LevelBrowserLayer) {
                             }
                         }
                         
-                        if (!found) co_return Err("The chosen file was not a .lvl");
+                        if (!found) co_return Err("The chosen folder was not a .lvl");
                     }
                 }
                 #endif
