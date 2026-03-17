@@ -352,9 +352,7 @@ class $modify(ImportLayer, LevelBrowserLayer) {
             auto btnMenu = this->getChildByID("new-level-menu");
             auto igImportBtn = Button::createWithNode(
                 CircleButtonSprite::createWithSpriteFrameName("file.png"_spr, .85f, CircleBaseColor::Pink, CircleBaseSize::Big),
-                [this](auto sender) {
-                    onImport();
-                }
+                [this](auto sender) { onImport(); }
             );
             
             igImportBtn->setID("import-ig-level-button"_spr);
