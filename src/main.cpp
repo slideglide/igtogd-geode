@@ -28,7 +28,7 @@ class Level {
     }
     
     public:
-    Level(std::filesystem::path path, bool debug) {
+    Level(std::filesystem::path path) {
         auto result = file::readBinary(path);
         if (result.isErr()) return;
         
@@ -232,7 +232,7 @@ class $modify(ImportLayer, LevelBrowserLayer) {
     };
     
     static Result<std::string> processLevelFile(std::filesystem::path const& path) {
-        Level igLevel(path, false);
+        Level igLevel(path);
         
         if (igLevel.getBlockCount() == 0 && igLevel.getBackgroundCount() == 0 && igLevel.getEndPos() == 3015) {
             return Err("This is most likely not a valid Impossible Game level file");
